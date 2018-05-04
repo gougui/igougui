@@ -1,0 +1,93 @@
+使用Docker快速部署ELK最新5.5.1平台
+一、Docker安装测试
+1、添加YUM源
+tee /etc/yum.repos.d/docker.repo <<-'EOF'
+[dockerrepo]
+name=Docker Repository
+baseurl=https://yum.dockerproject.org/repo/main/centos/7/
+enabled=1
+gpgcheck=1
+gpgkey=https://yum.dockerproject.org/gpg
+EOF
+2、安装Docker
+yum install -y docker-engine
+3、启动Docker
+$ systemctl start docker
+4、查看Dcoker版本
+docker version
+Client:
+ Version:      17.05.0-ce
+ API version:  1.29
+ Go version:   go1.7.5
+ Git commit:   89658be
+ Built:        Thu May  4 22:06:25 2017
+ OS/Arch:      linux/amd64
+
+Server:
+ Version:      17.05.0-ce
+ API version:  1.29 (minimum version 1.12)
+ Go version:   go1.7.5
+ Git commit:   89658be
+ Built:        Thu May  4 22:06:25 2017
+ OS/Arch:      linux/amd64
+ Experimental: false
+二、Docker创建ELK容器
+1、下载镜像
+Pull相关的官方Docker镜像：
+docker pull docker.elastic.co/logstash/logstash:5.5.1
+docker pull registry.docker-cn.com/library/elasticsearch:5.5.1
+docker pull registry.docker-cn.com/library/kibana:5.5.1
+#官方的elasticsearch、kibana镜像创建容器无法正常启动，下载官方国内镜像创建容器启动正常
+启动Elasticsearch容器:
+docker run -p 9200:9200 -e "http.host=0.0.0.0" -e "transport.host=127.0.0.1" --name my-elastic -d registry.docker-cn.com/library/elasticsearch:5.5.1
+启动Kibana容器：
+docker run -p 5601:5601 -e "ELASTICSEARCH_URL=http://localhost:9200" --name my-kibana --network host -d registry.docker-cn.com/library/kibana:5.5.1
+创建logstash/logstash.yml，配置xpack对于logstash的监控：
+http.host: "0.0.0.0"
+path.config: /usr/share/logstash/pipeline
+xpack.monitoring.elasticsearch.url: http://localhost:9200
+xpack.monitoring.elasticsearch.username: elastic
+xpack.monitoring.elasticsearch.password: changeme
+创建logstash/conf.d/logstash.conf，配置logstash的输入输出：
+input {
+  file {
+    path => "/tmp/access_log"
+    start_position => "beginning"
+  }
+}
+output {
+  elasticsearch {
+    index => "logstash-nginx-%{+YYYY.MM.dd}"
+    hosts => ["localhost:9200"]
+    user => "elastic"
+    password => "changeme"
+  }
+}
+启动Logstash容器：
+docker run -v /usr/local/elk/logstash/conf.d:/usr/share/logstash/pipeline/:ro -v /tmp:/tmp:ro \
+-v /usr/local/elk/logstash/logstash.yml:/usr/share/logstash/config/logstash.yml:ro --name my-logstash \
+--network host -d docker.elastic.co/logstash/logstash:5.5.1
+然后使用curl访问http://localhost:9200/?pretty
+curl http://localhost:9200/?pretty
+{
+  "name" : "L3Tb2nx",
+  "cluster_name" : "elasticsearch",
+  "cluster_uuid" : "2ICG8P3DQ4Gzl3fnxSXUMw",
+  "version" : {
+    "number" : "5.5.1",
+    "build_hash" : "19c13d0",
+    "build_date" : "2017-07-18T20:44:24.823Z",
+    "build_snapshot" : false,
+    "lucene_version" : "6.6.0"
+  },
+  "tagline" : "You Know, for Search"
+}
+如果可以看到类似上面的返回，则说明ES单机运行没有问题了。
+访问http://localhost:9200/_search?pretty能看到日志相关信息
+最后用浏览器打开kibana的链接http://yourhost:5601
+如果出现以下情况
+
+说明索引还没生成
+curl -XPUT localhost:9200/索引名
+
+在”Configure an index pattern”页面点击Create按钮，在Kibana点击Discover菜单，可以看到相关的日志信息。
