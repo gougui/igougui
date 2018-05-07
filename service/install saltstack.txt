@@ -1,0 +1,63 @@
+CentOS7.3安装SaltStack及配置
+
+安装环境
+准备两台机器，这两台机器都关闭selinux、防火墙。
+server ==> 192.168.5.128 （服务端）
+client ==> 192.168.5.129 （客户端）
+开始安装
+采用yum安装，还有其它安装方式，如pip、源码、salt-bootstrap
+install the SaltStack repository and key
+yum install https://repo.saltstack.com/yum/redhat/salt-repo-latest-2.el7.noarch.rpm
+服务端安装
+yum -y install salt-master salt-minion
+客户端安装
+yum -y install salt-minion
+配置master
+vim /etc/salt/minion +16
+以下两种方式都可以，选择其中一种即可
+# master改为服务端的主机名
+master: server
+# master改为服务端的IP
+master: 192.168.5.128
+启动saltstack服务
+服务端
+systemctl enable salt-master
+systemctl enable salt-minion
+systemctl start salt-master
+systemctl start salt-minion
+客户端
+systemctl enable salt-minion
+systemctl start salt-minion
+配置认证
+服务端操作
+salt-key -a client
+The following keys are going to be accepted:
+Unaccepted Keys:
+client
+Proceed? [n/Y] y     
+Key for minion client1 accepted.
+查看认证
+salt-key -L
+Accepted Keys:
+client
+server
+Denied Keys:
+Unaccepted Keys:
+Rejected Keys:
+测试
+salt '*' test.ping
+server:
+    True
+client:
+    True
+远程执行命令
+salt '*' cmd.run "ls"
+server:
+    anaconda-ks.cfg
+    initial-setup-ks.cfg
+    perl5
+client:
+    anaconda-ks.cfg
+    client
+    initial-setup-ks.cfg
+    perl5
