@@ -1,0 +1,22 @@
+1.1 服务端配置
+yum -y install createrepo
+
+mkdir -p /yum/centos7.3/x86_64/
+createrepo -pdo /yum/centos7.3/x86_64/ /yum/centos7.3/x86_64/
+cd /yum/centos7.3/x86_64/
+/usr/bin/python -m SimpleHTTPServer 80 >/dev/null 2>&1 & 
+createrepo --update /yum/centos7.3/x86_64/
+
+1.2客户端配置
+
+cd /etc/yum.repos.d
+mkdir repo.bak
+mv *.repo repo.bak
+cat > yisa.repo <<eof
+[yisa]
+name=Server
+baseurl=http://10.64.203.132
+enable=1
+gpgcheck=0
+eof
+

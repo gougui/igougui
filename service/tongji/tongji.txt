@@ -1,0 +1,6 @@
+dmidecode -t 4 |grep Version
+dmidecode -t 17 | grep 'Size:'|grep -v 'No Module Installed'
+fdisk -l|grep "Disk /dev/sd"
+lspci | grep -i vga|grep -i "NVIDIA"
+cat /etc/redhat-release
+/usr/bin/lsusb |grep Aladdin |wc -l

@@ -1,0 +1,5 @@
+ssh-keygen -t dsa
+ll ~/.ssh
+ls -ld .ssh/
+ssh-copy-id -i .ssh/id_dsa.pub root@192.168.1.129
+ssh -p 22 root@192.168.1.129

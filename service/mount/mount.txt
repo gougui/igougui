@@ -1,0 +1,13 @@
+fdisk -l|grep "Disk /dev/sd"
+mkdir /data
+
+fdisk /dev/sdb
+
+partprobe 
+mkfs.xfs -f /dev/sdb
+mount /dev/sdb /data
+df -h
+blkid /dev/sdb
+vim /etc/fstab 
+
+reboot
